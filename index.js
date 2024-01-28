@@ -5,12 +5,14 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import resource from "./routes/resource.route.js"
+import user from './routes/user.route.js'
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 app.use(resource)
+app.use(user);
 
 mongoose
     .connect(process.env.MONGO)

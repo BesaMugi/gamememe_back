@@ -1,9 +1,8 @@
 import mongoose from "mongoose";
 
 const resourcesSchema = mongoose.Schema({
-  name: { type: String, required: true }, // Название ресурса
-  count: { type: Number, default: 0 }, // Количество добываемого ресурса
+  name: { type: String, required: true },
+  count: { type: Number, default: 0 },
 });
 
 export const Resources = mongoose.model("Resources", resourcesSchema);
-
