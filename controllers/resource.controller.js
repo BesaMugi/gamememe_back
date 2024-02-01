@@ -1,30 +1,7 @@
 import { Resources } from "../models/resource.model.js";
+import { User } from "../models/user.model.js";
 
 const resourcesController = {
-  addResource: async (req, res) => {
-    const { name } = req.body;
-
-    try {
-      let resource = await Resources.findOne({ name });
-
-      if (!resource) {
-        // Если ресурс с стаким именем не существует, создаем новый
-        resource = await Resources.create({
-          name,
-          count: 0,
-        });
-      }
-
-      // Увеличиваем количество ресурса на 1
-      resource.count += 1;
-      await resource.save();
-
-      return res.json(resource);
-    } catch (error) {
-      return res.status(500).json({ error: error.message });
-    }
-  },
-
   getResources: async (req, res) => {
     try {
       const resources = await Resources.find();
@@ -34,32 +11,36 @@ const resourcesController = {
     }
   },
 
-  removeResource: async (req, res) => {
-    const { name } = req.params;
-
+  sellResource: async (req, res) => {
     try {
-      // Находим ресурс по имени
-      const resource = await Resources.findOne({ name });
+      const userId = req.params.id;
+      const { resourceName } = req.body;
 
-      if (!resource) {
-        return res.status(404).json({ error: "Resource not found" });
+      const user = await User.findById(userId);
+      const resource = await Resources.findOne({ name: resourceName, user: userId });
+
+      if (resource.count <= 0) {
+        return res.status(400).json({ error: "У вас нет этого ресурса в инвентаре или его количество равно нулю" });
       }
-
-      // Уменьшаем количество ресурса на 1
+      
       resource.count -= 1;
-
-      // Проверяем, чтобы количество не было отрицательным
-      if (resource.count < 0) {
-        resource.count = 0;
-      }
-
-      await resource.save();
-
-      return res.json(resource);
+      user.wallet += resource.price;
+      
+      // Сохраняем изменения в ресурсе и пользователе
+      await Promise.all([resource.save(), user.save()]);
+      
+      // Теперь обновим инвентарь пользователя
+      const updatedInventory = { ...user.inventory, [resourceName]: resource.count };
+      user.inventory = updatedInventory;
+      await user.save();
+      
+      res.status(200).json({ message: `Вы продали ${resourceName} и получили ${resource.price} в кошелек` });
+      
     } catch (error) {
-      return res.status(500).json({ error: error.message });
+      console.error(error);
+      res.status(500).json({ error: "Ошибка сервера" });
     }
-  },
+  }
 };
 
 export default resourcesController;
