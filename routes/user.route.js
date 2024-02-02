@@ -14,4 +14,5 @@ router.patch("/users/:id/updateEnergy", authMiddleware, usersController.updateUs
 router.patch("/users/:id/eatItem", authMiddleware, usersController.eatItem);
 
 
+
 export default router;
