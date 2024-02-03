@@ -11,37 +11,57 @@ const resourcesController = {
     }
   },
 
-  updateResourcePrice: async (req, res) => {
+  updateResourcePriceAndLevel: async (req, res) => {
     try {
-      const { resourceName, newPrice, newLevel } = req.body;
+      const { resourceName, newPrice, newLevel, newUpgradePrice } = req.body;
       const userId = req.user.id;
-  
-      console.log('Имя ресурса:', resourceName);
-      console.log('Новая цена:', newPrice);
-      console.log('Новый уровень:', newLevel);
-      
-  
+
       // Пытаемся найти ресурс для конкретного пользователя
       let resource = await Resources.findOne({ name: resourceName, user: userId });
-  
+
       // Если ресурс не существует, создаем новый для текущего пользователя
       if (!resource) {
         resource = new Resources({ name: resourceName, user: userId });
       }
-  
-      // Устанавливаем новую цену и уровень
-      resource.price = newPrice;
-      resource.level = newLevel || 0; // Если newLevel не передан, устанавливаем уровень по умолчанию
-      await resource.save();
-  
+
+      // Проверим, достаточно ли у пользователя средств для улучшения
+      const user = await User.findById(userId);
+      if (resource.upgradePrice > user.wallet) {
+        return res.status(400).json({ success: false, error: "Недостаточно средств для улучшения ресурса" });
+      }
+
+      // Вычитаем цену улучшения из кошелька пользователя
+      user.wallet -= upgradePrice;
+
+      // Устанавливаем новую цену, уровень и цену улучшения
+      resource.price += newPrice;
+      resource.level += newLevel;
+      resource.upgradePrice += newUpgradePrice;
+
+
+      await Promise.all([resource.save(), user.save()]);
+
       res.status(200).json({ success: true, updatedResource: resource });
-  
+
     } catch (error) {
       console.error(error);
       res.status(500).json({ success: false, error: 'Ошибка при обновлении цены ресурса' });
     }
   },
-  
+
+  getUserResources: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const userResources = await Resources.find({ user: userId });
+
+      res.status(200).json(userResources);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ success: false, error: 'Ошибка при получении ресурсов пользователя' });
+    }
+  },
+
+
   sellResource: async (req, res) => {
     try {
       const userId = req.params.id;
@@ -66,12 +86,13 @@ const resourcesController = {
       await user.save();
 
       res.status(200).json({ message: `Вы продали ${resourceName} и получили ${resource.price} в кошелек` });
-
+      console.log("Request Body:", req.body);
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Ошибка сервера" });
     }
   }
 };
+
 
 export default resourcesController;

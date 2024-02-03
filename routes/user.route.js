@@ -12,7 +12,6 @@ router.get("/profile", authMiddleware, usersController.getUserProfile);
 router.put("/users/:id/inventory", authMiddleware, usersController.updateInventory);
 router.patch("/users/:id/updateEnergy", authMiddleware, usersController.updateUserEnergy);
 router.patch("/users/:id/eatItem", authMiddleware, usersController.eatItem);
-
-
+router.patch("/users/:id/update-wallet", usersController.updateWallet);
 
 export default router;

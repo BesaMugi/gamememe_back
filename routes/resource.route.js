@@ -7,7 +7,8 @@ const router = Router();
 
 router.get("/resources", authMiddleware, resourcesController.getResources);
 router.patch("/users/:id/sellResource", authMiddleware, resourcesController.sellResource);
-router.patch("/resources/update-price", authMiddleware, resourcesController.updateResourcePrice);
+router.patch("/resources/update-price-level", authMiddleware, resourcesController.updateResourcePriceAndLevel);
+router.get("/user-resources", authMiddleware, resourcesController.getUserResources);
 
 
 export default router;

@@ -115,6 +115,27 @@ const usersController = {
   }
 },
 
+  updateWallet: async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const { newWalletValue } = req.body;
+
+      const user = await User.findById(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "Пользователь не найден" });
+      }
+
+      user.wallet = newWalletValue;
+      await user.save();
+
+      res.status(200).json({ message: "Кошелек пользователя успешно обновлен" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Ошибка сервера" });
+    }
+  },
+
 
   deleteUser: async (req, res) => {
     try {
