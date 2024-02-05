@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { Resources } from "../models/resource.model.js";
 
 const usersController = {
+  //регистрация аккаунта
   registUser: async (req, res) => {
     const { login, password } = req.body;
     const hash = await bcrypt.hash(password, +process.env.BCRYPT_ROUNDS);
@@ -18,6 +19,7 @@ const usersController = {
     }
   },
 
+  //вход в аккаунт
   login: async (req, res) => {
     const { password, login } = req.body;
 
@@ -41,6 +43,7 @@ const usersController = {
     res.json(token);
   },
 
+  //показ профиля игрока
   getUserProfile: async (req, res) => {
     try {
       const userId = req.user.id;
@@ -58,6 +61,7 @@ const usersController = {
     }
   },
 
+  //изменение энергии игрока
   updateUserEnergy: async (req, res) => {
     try {
       const userId = req.params.id;
@@ -79,42 +83,44 @@ const usersController = {
     }
   },
 
+  //изменение инвентаря игрока
   updateInventory: async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const { inventory } = req.body;
+    try {
+      const userId = req.params.id;
+      const { inventory } = req.body;
 
-    const user = await User.findById(userId);
+      const user = await User.findById(userId);
 
-    if (!user) {
-      return res.status(404).json({ error: "Пользователь не найден" });
-    }
-
-    user.inventory = inventory;
-    await user.save();
-
-    // Обновляем ресурсы в папке resources
-    for (const resourceName in inventory) {
-      const resourceCount = inventory[resourceName];
-
-      const resource = await Resources.findOne({ name: resourceName, user: userId });
-
-      if (resource) {
-        resource.count = resourceCount;
-        await resource.save();
-      } else {
-        // Если ресурса не существует, создаем новый с count из инвентаря и ценой 0
-        await Resources.create({ name: resourceName, count: resourceCount, price: 0, user: userId });
+      if (!user) {
+        return res.status(404).json({ error: "Пользователь не найден" });
       }
+
+      user.inventory = inventory;
+      await user.save();
+
+      // Обновляем ресурсы в папке resources
+      for (const resourceName in inventory) {
+        const resourceCount = inventory[resourceName];
+
+        const resource = await Resources.findOne({ name: resourceName, user: userId });
+
+        if (resource) {
+          resource.count = resourceCount;
+          await resource.save();
+        } else {
+          // Если ресурса не существует, создаем новый с count из инвентаря и ценой 0
+          await Resources.create({ name: resourceName, count: resourceCount, price: 0, user: userId });
+        }
+      }
+
+      res.status(200).json(user);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Ошибка сервера" });
     }
+  },
 
-    res.status(200).json(user);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Ошибка сервера" });
-  }
-},
-
+  //изменения в кошельке игрока
   updateWallet: async (req, res) => {
     try {
       const userId = req.params.id;
@@ -136,7 +142,7 @@ const usersController = {
     }
   },
 
-
+  //удаление игрока
   deleteUser: async (req, res) => {
     try {
       const userId = req.params.id;
@@ -153,6 +159,7 @@ const usersController = {
     }
   },
 
+  //поедание еды (минус еда - плюс энергия)
   eatItem: async (req, res) => {
     try {
       const userId = req.params.id;
@@ -177,6 +184,15 @@ const usersController = {
       user.energy += 1;
 
       await user.save();
+
+      //дополнительно удаляем ресурс из базы данных в отдельной папке
+      const resource = await Resources.findOne({ name: itemName, user: userId });
+
+      if (resource) {
+        // Если ресурс существует, уменьшать его количество в базе данных
+        resource.count -= 1;
+        await resource.save();
+      }
 
       res.status(200).json({ message: `Вы съели ${itemName} и восполнили энергию` });
     } catch (error) {

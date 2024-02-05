@@ -1,6 +1,7 @@
 import { Resources } from "../models/resource.model.js";
 import { User } from "../models/user.model.js";
 
+
 const resourcesController = {
   getResources: async (req, res) => {
     try {
@@ -13,41 +14,50 @@ const resourcesController = {
 
   updateResourcePriceAndLevel: async (req, res) => {
     try {
-      const { resourceName, newPrice, newLevel, newUpgradePrice } = req.body;
-      const userId = req.user.id;
+        const { resourceName, newPrice, newLevel, newPriceUpgrade } = req.body;
+        const userId = req.user.id;
 
-      // Пытаемся найти ресурс для конкретного пользователя
-      let resource = await Resources.findOne({ name: resourceName, user: userId });
+        // Пытаемся найти ресурс для конкретного пользователя
+        let resource = await Resources.findOne({ name: resourceName, user: userId });
 
-      // Если ресурс не существует, создаем новый для текущего пользователя
-      if (!resource) {
-        resource = new Resources({ name: resourceName, user: userId });
-      }
+        // Если ресурс не существует, создаем новый для текущего пользователя
+        if (!resource) {
+            resource = new Resources({ name: resourceName, user: userId });
+        }
 
-      // Проверим, достаточно ли у пользователя средств для улучшения
-      const user = await User.findById(userId);
-      if (resource.upgradePrice > user.wallet) {
-        return res.status(400).json({ success: false, error: "Недостаточно средств для улучшения ресурса" });
-      }
+        // Проверим, достаточно ли у пользователя средств для улучшения
+        const user = await User.findById(userId);
+        if (newLevel > 0 && newPriceUpgrade > user.wallet) {
+            // Проверяем, что уровень больше 0 и недостаточно средств для улучшения
+            return res.status(400).json({ success: false, error: "Недостаточно средств для улучшения ресурса" });
+        }
 
-      // Вычитаем цену улучшения из кошелька пользователя
-      user.wallet -= upgradePrice;
+        // Если уровень больше 0, вычитаем цену улучшения из кошелька пользователя
+        if (newLevel > 0) {
+            user.wallet -= newPriceUpgrade;
+        }
 
-      // Устанавливаем новую цену, уровень и цену улучшения
-      resource.price += newPrice;
-      resource.level += newLevel;
-      resource.upgradePrice += newUpgradePrice;
+        // Устанавливаем новую цену, уровень и цену улучшения
+        resource.price += newPrice;
 
+        // Проверим, если newLevel - это число, иначе установим priceUpgrade в 0
+        if (!isNaN(newLevel)) {
+            resource.level += newLevel;
+            // Рассчитываем новую цену улучшения в зависимости от уровня
+            resource.priceUpgrade = newLevel > 0 ? newPriceUpgrade : 0;
+        } else {
+            resource.priceUpgrade = 0;
+        }
 
-      await Promise.all([resource.save(), user.save()]);
+        await Promise.all([resource.save(), user.save()]);
 
-      res.status(200).json({ success: true, updatedResource: resource });
+        res.status(200).json({ success: true, updatedResource: resource });
 
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ success: false, error: 'Ошибка при обновлении цены ресурса' });
+        console.error(error);
+        res.status(500).json({ success: false, error: 'Ошибка при обновлении цены ресурса' });
     }
-  },
+},
 
   getUserResources: async (req, res) => {
     try {
