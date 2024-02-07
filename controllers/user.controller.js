@@ -163,7 +163,7 @@ const usersController = {
   eatItem: async (req, res) => {
     try {
       const userId = req.params.id;
-      const { itemName } = req.body;
+      const { itemName, energyToAdd } = req.body;
 
       const user = await User.findById(userId);
 
@@ -181,7 +181,7 @@ const usersController = {
 
       user.inventory = updatedInventory;
 
-      user.energy += 1;
+      user.energy += energyToAdd;
 
       await user.save();
 

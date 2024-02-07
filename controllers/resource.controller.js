@@ -84,6 +84,9 @@ const resourcesController = {
         return res.status(400).json({ error: "У вас нет этого ресурса в инвентаре или его количество равно нулю" });
       }
 
+      if (resource.price === 0) {
+        return res.status(400).json({ error: "Улучшите ресурс чтобы его продавать" })
+      }
       resource.count -= 1;
       user.wallet += resource.price;
 
